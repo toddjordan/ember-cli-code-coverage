@@ -43,28 +43,31 @@ module.exports = {
 
   // Ember Methods
 
+  init() {
+    this.fileLookup = {};
+    this._super.init && this._super.init.apply(this, arguments);
+  },
+
   setupPreprocessorRegistry: function(type, registry) {
     if (!this._isCoverageEnabled()) { return; }
-
     const buildTemplateInstrumenter = require('./lib/template-instrumenter');
     let TemplateInstrumenter = buildTemplateInstrumenter(
-      this._parentName(),
-      this.parent.root,
-      this.registry.extensionsForType('template'),
-      this.project.isEmberCLIAddon()
+      this._getIncludes.bind(this),
+      this._getExcludes.bind(this)
     );
 
     registry.add('htmlbars-ast-plugin', {
-      name: "template-instrumenter",
+      name: 'template-instrumenter',
       plugin: TemplateInstrumenter,
-      baseDir: __dirname
+      // TODO: temporarily remove while testing
+      // baseDir() {
+      //   return __dirname;
+      // }
     });
   },
 
   included: function() {
     this._super.included.apply(this, arguments);
-
-    this.fileLookup = {};
 
     if (!this._registeredWithBabel && this._isCoverageEnabled()) {
       let checker = new VersionChecker(this.parent).for('ember-cli-babel', 'npm');
@@ -152,11 +155,14 @@ module.exports = {
    * @returns {Array<String>} include paths
    */
   _getIncludes: function() {
-    return concat(
-      this._getIncludesForAppDirectory(),
-      this._getIncludesForAddonDirectory(),
-      this._getIncludesForInRepoAddonDirectories()
-    ).filter(Boolean);
+    if (!this._includes) {
+      this._includes = concat(
+        this._getIncludesForAppDirectory(),
+        this._getIncludesForAddonDirectory(),
+        this._getIncludesForInRepoAddonDirectories()
+      ).filter(Boolean);
+    }
+    return this._includes;
   },
 
   /**
@@ -213,10 +219,10 @@ module.exports = {
   _getIncludesForDir: function(dir, prefix) {
     if (fs.existsSync(dir)) {
       let dirname = path.relative(this.project.root, dir);
-      let globs = this.registry.extensionsForType('js').map((extension) => `**/*.${extension}`);
+      let globs = '**/*.{js,hbs}';
 
       return walkSync(dir, { directories: false, globs }).map(file => {
-        let module = prefix + '/' + file.replace(EXT_RE, '.js');
+        let module = prefix + '/' + file;
         this.fileLookup[module] = path.join(dirname, file);
         return module;
       });
@@ -230,7 +236,10 @@ module.exports = {
    * @returns {Array<String>} exclude paths
    */
   _getExcludes: function() {
-    return this._getConfig().excludes || [];
+    if (!this._excludes) {
+      this._excludes = this._getConfig().excludes || [];
+    }
+    return this._excludes;
   },
 
   /**

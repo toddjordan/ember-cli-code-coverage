@@ -21,7 +21,7 @@ describe('index.js', function() {
   });
 
   afterEach(function() {
-    Index._coveredAddon = Index._inRepoAddons = null;
+    Index._coveredAddon = Index._inRepoAddons = Index._includes = Index._excludes = null;
     sandbox.restore();
   });
 

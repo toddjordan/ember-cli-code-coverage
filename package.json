@@ -40,6 +40,7 @@
     "lodash.concat": "^4.5.0",
     "node-dir": "^0.1.16",
     "rsvp": "^4.8.1",
+    "test-exclude": "^4.2.0",
     "walk-sync": "^0.3.2"
   },
   "devDependencies": {
@@ -70,6 +71,7 @@
     "eslint-plugin-node": "^5.2.1",
     "fixturify": "^0.3.4",
     "glob": "^7.1.2",
+    "htmlbars": "^0.14.24",
     "lerna-changelog": "^0.7.0",
     "loader.js": "^4.2.3",
     "mocha": "^5.0.0",
