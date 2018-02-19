@@ -22,6 +22,39 @@
         "line": 3,
         "column": 0
       }
+    },
+    "3": {
+      "source": null,
+      "start": {
+        "line": 5,
+        "column": 0
+      },
+      "end": {
+        "line": 9,
+        "column": 7
+      }
+    },
+    "4": {
+      "source": null,
+      "start": {
+        "line": 6,
+        "column": 0
+      },
+      "end": {
+        "line": 7,
+        "column": 0
+      }
+    },
+    "5": {
+      "source": null,
+      "start": {
+        "line": 8,
+        "column": 0
+      },
+      "end": {
+        "line": 9,
+        "column": 0
+      }
     }
   },
   "fnMap": {},
@@ -63,15 +96,60 @@
           }
         }
       ]
+    },
+    "2": {
+      "loc": {
+        "source": null,
+        "start": {
+          "line": 5,
+          "column": 0
+        },
+        "end": {
+          "line": 9,
+          "column": 7
+        }
+      },
+      "type": "if",
+      "locations": [
+        {
+          "source": null,
+          "start": {
+            "line": 5,
+            "column": 0
+          },
+          "end": {
+            "line": 9,
+            "column": 7
+          }
+        },
+        {
+          "source": null,
+          "start": {
+            "line": 5,
+            "column": 0
+          },
+          "end": {
+            "line": 9,
+            "column": 7
+          }
+        }
+      ]
     }
   },
   "s": {
     "1": 0,
-    "2": 0
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
   },
   "f": {},
   "b": {
     "1": [
+      0,
+      0
+    ],
+    "2": [
       0,
       0
     ]
@@ -81,4 +159,12 @@
 {{#if truthy}}
   {{ember-cli-code-coverage-increment statement="2" path="included-module"}}
   {{ember-cli-code-coverage-increment branch="1" condition="0" path="included-module"}}Foo
+{{/if}}
+{{ember-cli-code-coverage-increment statement="3" path="included-module"}}
+{{#if truthy}}
+{{ember-cli-code-coverage-increment statement="4" path="included-module"}}
+{{ember-cli-code-coverage-increment branch="2" condition="0" path="included-module"}}Foo
+{{else}}
+{{ember-cli-code-coverage-increment statement="5" path="included-module"}}
+{{ember-cli-code-coverage-increment branch="2" condition="1" path="included-module"}}Bar
 {{/if}}

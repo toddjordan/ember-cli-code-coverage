@@ -13,7 +13,7 @@ function prettyPrint(str) {
 function testInstrument(inputFile, expectedFile) {
   let input = fs.readFileSync(path.join(__dirname, '../fixtures/templates', inputFile)).toString();
   let expected = fs.readFileSync(path.join(__dirname, '../fixtures/templates', expectedFile)).toString();
-  let parsedInput = prettyPrint(parse(input.trim(), {
+  let parsedInput = prettyPrint(parse(input, {
     plugins: {
       ast: [ getPlugin(() => ['included-module'], () => ['excluded-module']) ]
     },
@@ -21,7 +21,7 @@ function testInstrument(inputFile, expectedFile) {
       moduleName: 'included-module'
     }
   }));
-  let parsedExpected = prettyPrint(parse(expected.trim()));
+  let parsedExpected = prettyPrint(parse(expected));
 
   expect(parsedInput).to.equal(parsedExpected);
 }
