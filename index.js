@@ -54,19 +54,24 @@ module.exports = {
       let checker = new VersionChecker(this.parent).for('ember-cli-babel', 'npm');
 
       if (checker.satisfies('>= 6.0.0')) {
+        let addons = this._getConfig().coveredAddons.map((addonName) => this.project.findAddonByName(addonName));
+        const addonIncludes = addons
+              .map((addon) => this._getIncludesForDir(path.join(addon.root, 'addon'), addon.name))
+              .filter(Boolean)
+              .reduce((acc, val) => acc.concat(val));
         const IstanbulPlugin = requireBabelPlugin('babel-plugin-istanbul');
         const exclude = this._getExcludes();
-        const include = this._getIncludes();
+        const include = this._getIncludes().concat(addonIncludes);
 
         concat(
           this.app,
+          addons,
           this._findCoveredAddon(),
           this._findInRepoAddons()
         )
           .filter(Boolean)
           .map(getPlugins)
           .forEach((plugins) => plugins.push([IstanbulPlugin, { exclude, include }]));
-
       } else {
         this.project.ui.writeWarnLine(
           'ember-cli-code-coverage: You are using an unsupported ember-cli-babel version,' +
@@ -103,6 +108,7 @@ module.exports = {
     }
     attachMiddleware.serverMiddleware(startOptions.app, {
       configPath: this.project.configPath(),
+      coveredAddons: this._getConfig().coveredAddons,
       root: this.project.root,
       fileLookup: fileLookup
     });
@@ -114,6 +120,7 @@ module.exports = {
     }
     const config = {
       configPath: this.project.configPath(),
+      coveredAddons: this._getConfig().coveredAddons,
       root: this.project.root,
       fileLookup: fileLookup
     };
@@ -200,11 +207,11 @@ module.exports = {
     if (fs.existsSync(dir)) {
       let dirname = path.relative(this.project.root, dir);
       let globs = this.parentRegistry.extensionsForType('js').map((extension) => `**/*.${extension}`);
-
       return walkSync(dir, { directories: false, globs }).map(file => {
         const postfix = hasEmberCliTypescript ? file : file.replace(EXT_RE, '.js');
         const module = prefix + '/' + postfix;
-        this.fileLookup[module] = path.join(dirname, file);
+        let covDirName = dirname.replace(/\.\.\//, '');
+        this.fileLookup[module] = path.join(covDirName, file);
         return module;
       });
     } else {
