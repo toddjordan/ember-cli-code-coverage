@@ -54,7 +54,45 @@ module.exports = {
       let checker = new VersionChecker(this.parent).for('ember-cli-babel', 'npm');
 
       if (checker.satisfies('>= 6.0.0')) {
-        let addons = this._getConfig().coveredAddons.map((addonName) => this.project.findAddonByName(addonName));
+
+        // Go find specified addons in the addons defined at the app level
+        let firstPassAddonObj = this._getConfig().coveredAddons.reduce((acc, addonName) => {
+            let addon = this.project.findAddonByName(addonName);
+            if (addon != null) {
+              acc.foundAddons[addonName] = addon;
+            } else {
+              acc.unfoundAddons.push(addonName);
+            }
+            return acc;
+          }, { foundAddons: {}, unfoundAddons: [] });
+        let finalAddonObj = firstPassAddonObj;
+
+        // Now go through each of the addons we found at the app level
+        // and see if our specified covered addons are sub dependencies
+        const MAX_LEVELS = 2;
+        let levelNum = 0;
+        while (finalAddonObj.unfoundAddons.length > 0 && levelNum < MAX_LEVELS) {
+          levelNum++;
+          let newUnfoundKeys = [];
+          finalAddonObj = finalAddonObj.unfoundAddons.reduce((acc, addonName) => {
+            let foundKeys = Object.keys(acc.foundAddons);
+            let foundKey = foundKeys.find((addonKey) => {
+              let addon = acc.foundAddons[addonKey].findOwnAddonByName(addonName);
+              if (addon != null) {
+                acc.foundAddons[addonName] = addon;
+                return true;
+              }
+              return false;
+            });
+            if (!foundKey) {
+              newUnfoundKeys.push(addonName);
+            }
+            return acc;
+          }, Object.assign({}, finalAddonObj));
+          finalAddonObj.unfoundAddons = newUnfoundKeys;
+        }
+
+        let addons = Object.values(finalAddonObj.foundAddons);
         const addonIncludes = addons
               .map((addon) => this._getIncludesForDir(path.join(addon.root, 'addon'), addon.name))
               .filter(Boolean)
