@@ -65,9 +65,16 @@ export function forceModulesToBeLoaded(filterFunction) {
 }
 
 export async function sendCoverage(callback) {
+  console.log('[ember-cli-code-coverage] sendCoverage called');
   let coverageData = window.__coverage__; //eslint-disable-line no-undef
 
+  console.log('[ember-cli-code-coverage] window.__coverage__ exists:', coverageData !== undefined);
+  if (coverageData) {
+    console.log('[ember-cli-code-coverage] Coverage data has', Object.keys(coverageData).length, 'files');
+  }
+
   if (coverageData === undefined) {
+    console.log('[ember-cli-code-coverage] No coverage data found, returning early');
     if (callback) {
       callback();
     }
