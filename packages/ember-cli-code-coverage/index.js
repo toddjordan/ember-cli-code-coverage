@@ -85,7 +85,7 @@ module.exports = {
         // eslint-disable-next-line node/no-missing-require
         const embroiderCorePath = require.resolve('@embroider/core', { paths: [cwd] });
         let { locateEmbroiderWorkingDir } = require(embroiderCorePath);
-        cwd = path.resolve(locateEmbroiderWorkingDir(cwd), 'rewritten-app');
+        cwd = path.resolve(locateEmbroiderWorkingDir(cwd));
         console.log('[ember-cli-code-coverage] Successfully located Embroider working dir:', cwd);
       } catch (err) {
         console.warn('[ember-cli-code-coverage] First method failed:', err.message);
@@ -107,10 +107,13 @@ module.exports = {
 
     const IstanbulPlugin = require.resolve('babel-plugin-istanbul');
 
+    // For Embroider, instrument both rewritten-app and rewritten-packages (for engines)
+    const include = opts.embroider ? ['rewritten-app/**/*', 'rewritten-packages/**/*'] : '**/*';
+
     // DEBUG: Log instrumentation configuration
     console.log('[ember-cli-code-coverage] buildBabelPlugin config:', {
       cwd,
-      include: '**/*',
+      include,
       exclude,
       extension,
       'opts.embroider': opts.embroider,
@@ -120,7 +123,7 @@ module.exports = {
     return [
       // String lookup is needed to workaround https://github.com/embroider-build/embroider/issues/1525
       path.resolve(__dirname, 'lib/gjs-gts-istanbul-ignore-template-plugin'),
-      [IstanbulPlugin, { cwd, include: '**/*', exclude, extension }],
+      [IstanbulPlugin, { cwd, include, exclude, extension }],
     ];
   },
 
