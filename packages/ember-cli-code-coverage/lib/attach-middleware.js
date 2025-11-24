@@ -102,8 +102,18 @@ function adjustCoverageKey(
   let gjsGtsRegex = /\.g[tj]s$/gm;
 
   let relativePath = path.relative(root, filepath);
-  // we can determine if file is coming from embroider based on how the path looks
-  if (embroiderTmpPathRegex.test(filepath)) {
+
+  // Handle Embroider rewritten-app paths
+  // When filepath contains .embroider/rewritten-app/, extract just the portion after it
+  // This handles both temporary paths (embroider/abc123) and persistent paths (.embroider/rewritten-app)
+  if (filepath.includes('.embroider/rewritten-app/')) {
+    const parts = filepath.split('.embroider/rewritten-app/');
+    if (parts.length === 2) {
+      relativePath = parts[1];
+      console.log('[ember-cli-code-coverage] Embroider path detected, extracted:', relativePath, 'from:', filepath);
+    }
+  } else if (embroiderTmpPathRegex.test(filepath)) {
+    // we can determine if file is coming from embroider based on how the path looks
     relativePath = normalizeRelativePath(root, filepath);
   } else if (relativePath.startsWith('..')) {
     // This lives in a directory outside of the current one, likely a monorepo.
