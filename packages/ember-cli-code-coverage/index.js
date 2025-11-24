@@ -68,28 +68,62 @@ module.exports = {
       return [];
     }
 
+    // Auto-detect Embroider: check if @embroider/core is available
+    if (opts.embroider === undefined) {
+      try {
+        require.resolve('@embroider/core', { paths: [cwd] });
+        opts.embroider = true;
+      } catch (e) {
+        opts.embroider = false;
+      }
+    }
+
     if (opts.embroider === true) {
       try {
         // Attempt to import the utility @embroider/compat uses in >3.1 to locate the embroider working directory
         // the presence of this `locateEmbroiderWorkingDir` method coincides with the shift to utilize `rewritten-app` tmp dir
         // eslint-disable-next-line node/no-missing-require
-        let { locateEmbroiderWorkingDir } = require('@embroider/core');
-        cwd = path.resolve(locateEmbroiderWorkingDir(cwd), 'rewritten-app');
+        const embroiderCorePath = require.resolve('@embroider/core', { paths: [cwd] });
+        let { locateEmbroiderWorkingDir } = require(embroiderCorePath);
+        cwd = path.resolve(locateEmbroiderWorkingDir(cwd));
+        console.log('[ember-cli-code-coverage] Successfully located Embroider working dir:', cwd);
       } catch (err) {
-        // otherwise, fall back to the method used in embroider <3.1
-        let {
-          stableWorkspaceDir,
+        console.warn('[ember-cli-code-coverage] First method failed:', err.message);
+        try {
+          // otherwise, fall back to the method used in embroider <3.1
           // eslint-disable-next-line node/no-missing-require
-        } = require('@embroider/compat/src/default-pipeline');
-        cwd = stableWorkspaceDir(cwd, process.env.EMBER_ENV);
+          const embroiderCompatPath = require.resolve('@embroider/compat/src/default-pipeline', { paths: [cwd] });
+          let { stableWorkspaceDir } = require(embroiderCompatPath);
+          cwd = stableWorkspaceDir(cwd, process.env.EMBER_ENV);
+          console.log('[ember-cli-code-coverage] Successfully located Embroider working dir (fallback):', cwd);
+        } catch (err2) {
+          // If neither method works, just use cwd as-is
+          // This can happen with newer Embroider versions
+          console.warn('[ember-cli-code-coverage] Second method failed:', err2.message);
+          console.warn('[ember-cli-code-coverage] Could not locate Embroider working dir, using cwd:', cwd);
+        }
       }
     }
 
     const IstanbulPlugin = require.resolve('babel-plugin-istanbul');
+
+    // For Embroider, instrument both rewritten-app and rewritten-packages (for engines)
+    const include = opts.embroider ? ['rewritten-app/**/*', 'rewritten-packages/**/*'] : '**/*';
+
+    // DEBUG: Log instrumentation configuration
+    console.log('[ember-cli-code-coverage] buildBabelPlugin config:', {
+      cwd,
+      include,
+      exclude,
+      extension,
+      'opts.embroider': opts.embroider,
+      'process.cwd()': process.cwd(),
+    });
+
     return [
       // String lookup is needed to workaround https://github.com/embroider-build/embroider/issues/1525
       path.resolve(__dirname, 'lib/gjs-gts-istanbul-ignore-template-plugin'),
-      [IstanbulPlugin, { cwd, include: '**/*', exclude, extension }],
+      [IstanbulPlugin, { cwd, include, exclude, extension }],
     ];
   },
 

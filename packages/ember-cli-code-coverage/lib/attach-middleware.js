@@ -102,8 +102,18 @@ function adjustCoverageKey(
   let gjsGtsRegex = /\.g[tj]s$/gm;
 
   let relativePath = path.relative(root, filepath);
-  // we can determine if file is coming from embroider based on how the path looks
-  if (embroiderTmpPathRegex.test(filepath)) {
+
+  // Handle Embroider rewritten-app paths
+  // When filepath contains .embroider/rewritten-app/, extract just the portion after it
+  // This handles both temporary paths (embroider/abc123) and persistent paths (.embroider/rewritten-app)
+  if (filepath.includes('.embroider/rewritten-app/')) {
+    const parts = filepath.split('.embroider/rewritten-app/');
+    if (parts.length === 2) {
+      relativePath = parts[1];
+      console.log('[ember-cli-code-coverage] Embroider path detected, extracted:', relativePath, 'from:', filepath);
+    }
+  } else if (embroiderTmpPathRegex.test(filepath)) {
+    // we can determine if file is coming from embroider based on how the path looks
     relativePath = normalizeRelativePath(root, filepath);
   } else if (relativePath.startsWith('..')) {
     // This lives in a directory outside of the current one, likely a monorepo.
@@ -180,18 +190,44 @@ function adjustCoverage(coverage, options) {
 async function writeCoverage(coverage, options, map) {
   let { root } = options;
 
+  console.log('[ember-cli-code-coverage] writeCoverage called with', Object.keys(coverage).length, 'files');
+  console.log('[ember-cli-code-coverage] root:', root);
+  console.log('[ember-cli-code-coverage] Sample original coverage paths:', Object.keys(coverage).slice(0, 5));
+
   const remappedCoverage = await sourceMapStore.transformCoverage(
     libCoverage.createCoverageMap(coverage)
   );
 
+  console.log('[ember-cli-code-coverage] Sample remapped coverage paths:', Object.keys(remappedCoverage.data).slice(0, 5));
+
   const adjustedCoverage = adjustCoverage(remappedCoverage.data, options);
 
+  console.log('[ember-cli-code-coverage] Sample adjusted coverage paths:', Object.keys(adjustedCoverage).slice(0, 5));
+
+  console.log('[ember-cli-code-coverage] adjustedCoverage has', Object.keys(adjustedCoverage).length, 'files');
+
+  let addedCount = 0;
+  let skippedCount = 0;
+  let skippedFiles = [];
   Object.entries(adjustedCoverage).forEach(([relativePath, cov]) => {
+    const fullPath = path.join(root, relativePath);
     // this filters out files that dont reside within the project
-    if (fs.existsSync(path.join(root, relativePath))) {
+    if (fs.existsSync(fullPath)) {
       map.addFileCoverage(cov);
+      addedCount++;
+    } else {
+      skippedCount++;
+      if (skippedFiles.length < 5) {
+        skippedFiles.push({ relativePath, fullPath });
+      }
     }
   });
+
+  console.log('[ember-cli-code-coverage] Added', addedCount, 'files to coverage map');
+  console.log('[ember-cli-code-coverage] Skipped', skippedCount, 'files (not found in project)');
+  if (skippedFiles.length > 0) {
+    console.log('[ember-cli-code-coverage] Sample skipped files:', skippedFiles);
+  }
 }
 
 function reportCoverage(map, root, configPath) {
@@ -228,9 +264,13 @@ function reportCoverage(map, root, configPath) {
 }
 
 async function coverageHandler(map, options, req, res) {
+  console.log('[ember-cli-code-coverage] POST /write-coverage received');
+  console.log('[ember-cli-code-coverage] Request body has coverage for', Object.keys(req.body || {}).length, 'files');
+
   await writeCoverage(req.body, options, map);
   reportCoverage(map, options.root, options.configPath);
 
+  console.log('[ember-cli-code-coverage] Coverage report written');
   res.send(map.getCoverageSummary().toJSON());
 }
 
