@@ -182,12 +182,17 @@ async function writeCoverage(coverage, options, map) {
 
   console.log('[ember-cli-code-coverage] writeCoverage called with', Object.keys(coverage).length, 'files');
   console.log('[ember-cli-code-coverage] root:', root);
+  console.log('[ember-cli-code-coverage] Sample original coverage paths:', Object.keys(coverage).slice(0, 5));
 
   const remappedCoverage = await sourceMapStore.transformCoverage(
     libCoverage.createCoverageMap(coverage)
   );
 
+  console.log('[ember-cli-code-coverage] Sample remapped coverage paths:', Object.keys(remappedCoverage.data).slice(0, 5));
+
   const adjustedCoverage = adjustCoverage(remappedCoverage.data, options);
+
+  console.log('[ember-cli-code-coverage] Sample adjusted coverage paths:', Object.keys(adjustedCoverage).slice(0, 5));
 
   console.log('[ember-cli-code-coverage] adjustedCoverage has', Object.keys(adjustedCoverage).length, 'files');
 
